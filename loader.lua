@@ -13,7 +13,7 @@ WindUI:AddTheme({
 })
 local Window = WindUI:CreateWindow({
     Title = "KbxHub - Fish It",
-    Icon = "rbxassetid://130348378128532",
+    Icon = "rbxassetid://113754783010414",
     Author = "KBX",
     Folder = "SynceHub",
     Size = UDim2.fromOffset(600, 360),
@@ -783,7 +783,7 @@ do
     home:Paragraph({
         Title = "KbxHub Community",
         Desc = "Join Our Community Discord Server to get the latest updates, support, and connect with other users!",
-        Image = "rbxassetid://114915707934715",
+        Image = "rbxassetid://113754783010414",
         ImageSize = 24,
         Buttons = {
             {
@@ -811,7 +811,7 @@ do
     })
 
     home:Image({
-        Image = "rbxassetid://114915707934715",
+        Image = "rbxassetid://113754783010414",
         AspectRatio = "16:9",
         Radius = 9,
     })
@@ -819,8 +819,8 @@ do
     home:Space()
 
     home:Paragraph({
-        Title = "Version 1.0.3",
-        Desc = "- 11 Des 2025 Release Freemium",
+        Title = "Version 1.0.4",
+        Desc = "- 16 Des 2025 Release Freemium",
     })
     home:Paragraph({
         Title = "Before Update",
@@ -8653,7 +8653,7 @@ end
 
 Window:EditOpenButton({
     Title = "",
-    Icon = "rbxassetid://130348378128532",
+    Icon = "rbxassetid://113754783010414",
     CornerRadius = UDim.new(0,40),
     StrokeThickness = 0.5,
     Color = ColorSequence.new(
