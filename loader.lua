@@ -1,14 +1,26 @@
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+WindUI:AddTheme({
+    Name = "kbx", -- theme name
+    
+    Accent = Color3.fromHex("#F75EB3"),
+    Dialog = Color3.fromHex("#F75EB3"),
+    Outline = Color3.fromHex("#FFFFFF"),
+    Text = Color3.fromHex("#FFFFFF"),
+    Placeholder = Color3.fromHex("#FFA8D7"),
+    Background = Color3.fromHex("#F75EB3"),
+    Button = Color3.fromHex("#FFA8D7"),
+    Icon = Color3.fromHex("#FFFFFF")
+})
 local Window = WindUI:CreateWindow({
-    Title = "SynceHub - Fish It",
+    Title = "KbxHub - Fish It",
     Icon = "rbxassetid://130348378128532",
-    Author = "Freemium Script",
+    Author = "KBX",
     Folder = "SynceHub",
     Size = UDim2.fromOffset(600, 360),
     MinSize = Vector2.new(560, 250),
     MaxSize = Vector2.new(950, 760),
     Transparent = false,
-    Theme = "Sky",
+    Theme = "kbx",
     Resizable = true,
     SideBarWidth = 190,
     BackgroundImageTransparency = 0.42,
@@ -178,7 +190,7 @@ pcall(function()
     for i, v in pairs(getconnections(player.Idled)) do
         if v.Disable then
             v:Disable() -- Menonaktifkan koneksi event
-            print("[SynceHub Anti-AFK] ON")
+            print("[KbxHub Anti-AFK] ON")
         end
     end
 end)
@@ -764,12 +776,12 @@ do
     home:Select()
     
     home:Section({
-        Title = "Join Discord Server SynceHub",
+        Title = "Join Discord Server KbxHub",
         TextSize = 18,
     })
 
     home:Paragraph({
-        Title = "SynceHub Community",
+        Title = "KbxHub Community",
         Desc = "Join Our Community Discord Server to get the latest updates, support, and connect with other users!",
         Image = "rbxassetid://114915707934715",
         ImageSize = 24,
@@ -778,10 +790,10 @@ do
                 Title = "Copy Link",
                 Icon = "link",
                 Callback = function()
-                    setclipboard("https://dsc.gg/Syncehub")
+                    setclipboard("https://dsc.gg/KbxHub")
                     WindUI:Notify({
                         Title = "Link Disalin!",
-                        Content = "Link Discord SynceHub berhasil disalin.",
+                        Content = "Link Discord KbxHub berhasil disalin.",
                         Duration = 3,
                         Icon = "copy",
                     })
@@ -1159,8 +1171,8 @@ do
     local isHideActive = false
     local hideConnection = nil
     
-    local customName = ".gg/SynceHub"
-    local customLevel = "Lvl. 969" 
+    local customName = ".gg/KbxHub"
+    local customLevel = "Lvl. 666" 
 
     local custname = Reg("cfakennme",other:Input({
         Title = "Custom Fake Name",
@@ -8112,7 +8124,7 @@ do
 
     -- Variabel lokal untuk menyimpan data
     local WEBHOOK_URL = ""
-    local WEBHOOK_USERNAME = "SynceHub Notify" 
+    local WEBHOOK_USERNAME = "KbxHub Notify" 
     local isWebhookEnabled = false
     local SelectedRarityCategories = {}
     local SelectedWebhookItemNames = {} -- Variabel baru untuk filter nama
@@ -8135,8 +8147,8 @@ do
     end
     
     -- Variabel KHUSUS untuk Global Webhook
-    local GLOBAL_WEBHOOK_URL = "https://discord.com/api/webhooks/1438756450972471387/gHuV9K4UmiTjqK3F9KRt720HkGvLJGogwJ9uh17b7QpqMd1ieBC_UdKAX95ozTanWH37"
-    local GLOBAL_WEBHOOK_USERNAME = "SynceHub | Community"
+    local GLOBAL_WEBHOOK_URL = "https://discord.com/api/webhooks/1410886982820827217/2M_lFgv0_KQWO-M9Y65bIvpOWMicugdVA3AR1BHvB4dRPhe9MivLrRLfaS6bT51bf-K6"
+    local GLOBAL_WEBHOOK_USERNAME = "KbxHub | Community"
     local GLOBAL_RARITY_FILTER = {"SECRET", "TROPHY", "COLLECTIBLE", "DEV"}
 
     local RarityList = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Trophy", "Collectible", "DEV"}
@@ -8324,7 +8336,7 @@ do
             local isUserFilterMatch = shouldNotify(fishRarityUpper, metadata, fishName)
 
             if isWebhookEnabled and WEBHOOK_URL ~= "" and isUserFilterMatch then
-                local title_private = string.format("<:TEXTURENOBG:1438662703722790992> SynceHub | Webhook\n\n<a:ChipiChapa:1438661193857503304> New Fish Caught! (%s)", fishName)
+                local title_private = string.format("<:TEXTURENOBG:1438662703722790992> KbxHub | Webhook\n\n<a:ChipiChapa:1438661193857503304> New Fish Caught! (%s)", fishName)
                 
                 local embed = {
                     title = title_private,
@@ -8341,7 +8353,7 @@ do
                     },
                     thumbnail = { url = imageUrl },
                     footer = {
-                        text = string.format("SynceHub Webhook • Total Caught: %s • %s", caughtDisplay, os.date("%Y-%m-%d %H:%M:%S"))
+                        text = string.format("KbxHub Webhook • Total Caught: %s • %s", caughtDisplay, os.date("%Y-%m-%d %H:%M:%S"))
                     }
                 }
                 local success_send, message = sendExploitWebhook(WEBHOOK_URL, WEBHOOK_USERNAME, embed)
@@ -8362,7 +8374,7 @@ do
                 local playerName = LocalPlayer.DisplayName or LocalPlayer.Name
                 local censoredPlayerName = CensorName(playerName)
                 
-                local title_global = string.format("<:TEXTURENOBG:1438662703722790992> SynceHub | Global Tracker\n\n<a:globe:1438758633151266818> GLOBAL CATCH! %s", fishName)
+                local title_global = string.format("<:TEXTURENOBG:1438662703722790992> KbxHub | Global Tracker\n\n<a:globe:1438758633151266818> GLOBAL CATCH! %s", fishName)
 
                 local globalEmbed = {
                     title = title_global,
@@ -8375,7 +8387,7 @@ do
                     },
                     thumbnail = { url = imageUrl },
                     footer = {
-                        text = string.format("SynceHub Community| Player: %s | %s", censoredPlayerName, os.date("%Y-%m-%d %H:%M:%S"))
+                        text = string.format("KbxHub Community| Player: %s | %s", censoredPlayerName, os.date("%Y-%m-%d %H:%M:%S"))
                     }
                 }
                 
@@ -8386,7 +8398,7 @@ do
         end)
         
         if not success then
-            warn("[SynceHub Webhook] Error processing fish data:", results)
+            warn("[KbxHub Webhook] Error processing fish data:", results)
         end
     end
     
@@ -8485,7 +8497,7 @@ do
                 return
             end
             local testEmbed = {
-                title = "SynceHub Webhook Test",
+                title = "KbxHub Webhook Test",
                 description = "Success <a:ChipiChapa:1438661193857503304>",
                 color = 0x00FF00,
                 fields = {
@@ -8494,7 +8506,7 @@ do
                     { name = "Cache System", value = "Active ✅", inline = true }
                 },
                 footer = {
-                    text = "SynceHub Webhook Test"
+                    text = "KbxHub Webhook Test"
                 }
             }
             local success, message = sendExploitWebhook(WEBHOOK_URL, WEBHOOK_USERNAME, testEmbed)
@@ -8645,15 +8657,15 @@ Window:EditOpenButton({
     CornerRadius = UDim.new(0,40),
     StrokeThickness = 0.5,
     Color = ColorSequence.new(
-        Color3.fromHex("FFFFFF"),
-        Color3.fromHex("FFFFFF")
+        Color3.fromHex("F75EB3"),
+        Color3.fromHex("FFA8D7")
     ),
     OnlyMobile = false,
     Enabled = true,
     Draggable = true,
 })
 
-WindUI:Notify({ Title = "SynceHub Was Loaded", Content = "Press [F] to open/close the menu", Duration = 5, Icon = "info" })
+WindUI:Notify({ Title = "KbxHub Was Loaded", Content = "Press [F] to open/close the menu", Duration = 5, Icon = "info" })
 -- [[ AUTO LOAD & SAVE LOOP ]]
 task.spawn(function()
     task.wait(2) -- Tunggu UI load sempurna
