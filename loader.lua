@@ -2562,7 +2562,7 @@ end
 
     local MutationDropdown = Reg("dmut",favsec:Dropdown({
         Title = "by Mutation",
-        Values = {"Shiny", "Gemstone", "Corrupt", "Galaxy", "Holographic", "Ghost", "Lightning", "Fairy Dust", "Gold", "Midnight", "Radioactive", "Stone", "Albino", "Sandy", "Acidic", "Disco", "Frozen","Noob"},
+        Values = {"Shiny", "Gemstone", "Arctic Frost", "Bloodmoon", "Color Burn", "Festive", "Moon Fragment", "Fairy Dust", "Gold", "Midnight", "Radioactive", "Stone", "Albino", "Sandy", "Acidic", "Disco", "Frozen","Noob"},
         Multi = true, AllowNone = true, Value = false,
         Callback = function(values) selectedMutations = values or {} end
     }))
