@@ -622,11 +622,11 @@ local function FindAndTeleportToTargetEvent()
         end
     
     elseif targetName == "Worm Hunt" then
-        local menuRingsFolder = workspace:FindFirstChild("!!! MENU RINGS")
+        local menuRingsFolder = workspace:FindFirstChild("Props")
         if menuRingsFolder then
             for _, child in ipairs(menuRingsFolder:GetChildren()) do
-                if child.Name == "Props" then
-                    local specificModel = child:FindFirstChild("Model")
+                if child.Name == "Black Hole" then
+                    local specificModel = child:FindFirstChild("Part")
                     if specificModel then
                         eventModel = specificModel
                         break
