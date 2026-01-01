@@ -13,7 +13,7 @@ WindUI:AddTheme({
 })
 local Window = WindUI:CreateWindow({
     Title = "KbxHub - Fish It",
-    Icon = "rbxassetid://113754783010414",
+    Icon = "rbxassetid://85688359938693",
     Author = "KBX",
     Folder = "SynceHub",
     Size = UDim2.fromOffset(600, 360),
@@ -597,10 +597,7 @@ local function RunAutoEnchantLoop(rodUUID)
 end
 
 local eventsList = { 
-    "Shark Hunt", "Ghost Shark Hunt", "Worm Hunt", "Black Hole", "Shocked", 
-    "Ghost Worm", "Meteor Rain", "Megalodon Hunt", "Treasure Event"
-}
-
+    "Black Hole", "Shocked", "Ghost Worm", "Meteor Rain", "Ghost Shark Hunt", "Megalodon Hunt", "Treasure Event"}
 local autoEventTargetName = nil 
 local autoEventTeleportState = false
 local autoEventTeleportThread = nil
@@ -615,32 +612,22 @@ local function FindAndTeleportToTargetEvent()
     
     local eventModel = nil
     
+    -- 1. Logika Khusus untuk Treasure Event (Sunken Wreckage)
     if targetName == "Treasure Event" then
         local sunkenFolder = workspace:FindFirstChild("Sunken Wreckage")
         if sunkenFolder then
             eventModel = sunkenFolder:FindFirstChild("Treasure")
         end
     
-    elseif targetName == "Worm Hunt" then
-        local menuRingsFolder = workspace:FindFirstChild("Props")
-        if menuRingsFolder then
-            for _, child in ipairs(menuRingsFolder:GetChildren()) do
-                if child.Name == "Black Hole" then
-                    local specificModel = child:FindFirstChild("Part")
-                    if specificModel then
-                        eventModel = specificModel
-                        break
-                    end
-                end
-            end
-        end
-
+    -- 2. Logika untuk Event yang berada di dalam model "Props" (Workspace)
     else
-        local menuRingsFolder = workspace:FindFirstChild("!!! MENU RINGS") 
-        if menuRingsFolder then
-            for _, container in ipairs(menuRingsFolder:GetChildren()) do
-                if container:FindFirstChild(targetName) then
-                    eventModel = container:FindFirstChild(targetName)
+        -- Kita cari semua objek bernama "Props" di Workspace
+        for _, container in ipairs(workspace:GetChildren()) do
+            if container.Name == "Props" and container:IsA("Model") then
+                -- Cek apakah salah satu dari event target ada di dalam Props ini
+                local found = container:FindFirstChild(targetName) -- Mencari "Megalodon Hunt", "Black Hole", atau "Ghost Shark Event"
+                if found then
+                    eventModel = found
                     break
                 end
             end
@@ -649,25 +636,33 @@ local function FindAndTeleportToTargetEvent()
     
     if not eventModel then return false end 
 
+    -- --- BAGIAN LOGIKA TARGET PART & OFFSET ---
     local targetPart = nil
     local positionOffset = Vector3.new(0, 15, 0) 
     
     if targetName == "Megalodon Hunt" then
-        targetPart = eventModel:FindFirstChild("Top") 
-        if targetPart then positionOffset = Vector3.new(0, 3, 0) end
+        -- Jika Megalodon punya part "Top", kita ke sana, jika tidak ke model utamanya
+        targetPart = eventModel:FindFirstChild("Top") or eventModel
+        positionOffset = Vector3.new(0, 5, 0) -- Offset lebih rendah agar dekat dengan hiu
+    elseif targetName == "Ghost Shark Event" then
+        targetPart = eventModel:FindFirstChild("Fishing Boat") or eventModel:FindFirstChild("Ghost Shark Hunt") or eventModel
+        positionOffset = Vector3.new(0, 10, 20)
+    elseif targetName == "Black Hole" then
+        targetPart = eventModel
+        positionOffset = Vector3.new(0, 20, 0) -- Tinggi agar tidak langsung terhisap
     elseif targetName == "Treasure Event" then
         targetPart = eventModel
         positionOffset = Vector3.new(0, 5, 0)
     else
-        targetPart = eventModel:FindFirstChild("Fishing Boat")
-        if not targetPart then targetPart = eventModel end
+        -- Default untuk event lain
+        targetPart = eventModel:FindFirstChild("Fishing Boat") or eventModel
         positionOffset = Vector3.new(0, 15, 0)
     end
 
     if not targetPart then return false end
 
+    -- --- EKSEKUSI TELEPORT ---
     local targetCFrame = nil
-    
     local success = pcall(function()
         if targetPart:IsA("Model") then
              targetCFrame = targetPart:GetPivot()
@@ -677,7 +672,7 @@ local function FindAndTeleportToTargetEvent()
     end)
 
     if success and targetCFrame and typeof(targetCFrame) == "CFrame" then
-        local position = targetCFrame.p + positionOffset
+        local position = targetCFrame.Position + positionOffset
         local lookVector = targetCFrame.LookVector
         
         TeleportToLookAt(position, lookVector)
@@ -783,7 +778,7 @@ do
     home:Paragraph({
         Title = "KbxHub Community",
         Desc = "Join Our Community Discord Server to get the latest updates, support, and connect with other users!",
-        Image = "rbxassetid://113754783010414",
+        Image = "rbxassetid://85688359938693",
         ImageSize = 24,
         Buttons = {
             {
@@ -811,7 +806,7 @@ do
     })
 
     home:Image({
-        Image = "rbxassetid://113754783010414",
+        Image = "rbxassetid://85688359938693",
         AspectRatio = "16:9",
         Radius = 9,
     })
@@ -4728,7 +4723,7 @@ do
     -- =================================================================
     local function GetGhostfinProgressSafe()
         local data = { Header = "Loading...", Q1={Text="...",Done=false}, Q2={Text="...",Done=false}, Q3={Text="...",Done=false}, Q4={Text="...",Done=false}, AllDone=false, BoardFound=false }
-        local board = workspace:FindFirstChild("!!! MENU RINGS") and workspace["!!! MENU RINGS"]:FindFirstChild("Deep Sea Tracker") and workspace["!!! MENU RINGS"]["Deep Sea Tracker"]:FindFirstChild("Board")
+        local board = workspace:FindFirstChild("!!! DEPENDENCIES") and workspace["!!! DEPENDENCIES"]:FindFirstChild("QuestTrackers") and workspace["!!! DEPENDENCIES"]["QuestTrackers"]:FindFirstChild("Deep Sea Tracker") and workspace["!!! DEPENDENCIES"]["QuestTrackers"]["Deep Sea Tracker"]:FindFirstChild("Board")
         if board then
             data.BoardFound = true 
             pcall(function()
@@ -4744,7 +4739,7 @@ do
 
     local function GetElementProgressSafe()
         local data = { Header = "Loading...", Q1={Text="...",Done=false}, Q2={Text="...",Done=false}, Q3={Text="...",Done=false}, Q4={Text="...",Done=false}, AllDone=false, BoardFound=false }
-        local board = workspace:FindFirstChild("!!! MENU RINGS") and workspace["!!! MENU RINGS"]:FindFirstChild("Element Tracker") and workspace["!!! MENU RINGS"]["Element Tracker"]:FindFirstChild("Board")
+        local board = workspace:FindFirstChild("!!! DEPENDENCIES") and workspace["!!! DEPENDENCIES"]:FindFirstChild("QuestTrackers") and workspace["!!! DEPENDENCIES"]["QuestTrackers"]:FindFirstChild("Element Tracker") and workspace["!!! DEPENDENCIES"]["QuestTrackers"]["Element Tracker"]:FindFirstChild("Board")
         if board then
             data.BoardFound = true
             pcall(function()
@@ -6691,382 +6686,135 @@ end
         end
 end
     })
-    -- =================================================================
-    -- 🕺 DISCO EVENT (AUTO STATUS UPDATE + BRUTE FORCE + LEGIT FISHING FIX)
-    -- =================================================================
-    Event:Divider()
-    local disco = Event:Section({ Title = "Disco Event", TextSize = 18,})
+-- =================================================================
+-- 🎄 CHRISTMAS CAVE EVENT (AUTO-RETURN SUPPORT)
+-- =================================================================
+Event:Divider()
+local xmas = Event:Section({ Title = "Christmas Cave Event", TextSize = 18,})
 
-    -- --- VARIABLES & CONFIGS ---
-    local DISCO_UNLOCK_STATE = false
-    local DISCO_UNLOCK_THREAD = nil
-    local DISCO_SPAM_THREAD = nil
-    local DISCO_EQUIP_THREAD = nil 
-    local DISCO_PILLARS = { "Brighteyes Guppy", "Builderman Guppy", "Guest Guppy", "Shedletsky Guppy" }
+-- --- CONFIGURATIONS ---
+local XMAS_CAVE_POS = Vector3.new(606.948, -580.581, 8863.126) -- GANTI dengan koordinat Xmas Cave kamu
+local XMAS_CAVE_LOOK = Vector3.new(-0.843, 0.000, 0.536)      -- GANTI dengan look vector tujuan
+
+local autoJoinXmasState = false
+local autoJoinXmasThread = nil
+local lastPosBeforeXmas = nil -- Variabel penyimpan posisi asal
+
+-- UI STATUS
+local XMAS_STATUS_PARAGRAPH = xmas:Paragraph({ 
+    Title = "Xmas Cave Status: Checking...", 
+    Content = "Menghitung waktu server...",
+    Icon = "clock"
+})
+
+-- [[ FUNGSI LOGIKA WAKTU ]]
+local function GetXmasEventStatus()
+    local serverTime = os.date("!*t") -- UTC Server Time
+    local hour = serverTime.hour
+    local min = serverTime.min
     
-    -- [[ GATE LOCKED DATA ]]
-    local LOCKED_CFRAME = CFrame.new(-8804.5, -575.5, 168.625, 0, 0, 1, 0, 1, 0, -1, 0, 0)
-
-    -- POSISI
-    local IRON_CAVERN_POS_FIXED = Vector3.new(-8792.546, -588.000, 230.642)
-    local IRON_CAVERN_LOOK_FIXED = Vector3.new(0.718, 0.000, 0.696)
-    local DISCO_EVENT_POS = Vector3.new(-8641.672, -547.500, 160.322)
-    local DISCO_EVENT_LOOK = Vector3.new(0.984, -0.000, 0.176)
-
-    local FishingController = require(game:GetService("ReplicatedStorage"):WaitForChild("Controllers").FishingController)
-
-    -- REMOTE FIX
-    local RE_PlaceCavernTotemItem = nil
-    pcall(function()
-        RE_PlaceCavernTotemItem = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net:WaitForChild("RE/PlaceCavernTotemItem", 5)
-    end)
-
-    -- UI STATUS
-    local DISCO_STATUS_PARAGRAPH = disco:Paragraph({ 
-        Title = "Disco Gate Status: Checking...", 
-        Content = "Menunggu data...",
-        Icon = "door-open"
-    })
-
-    -- =================================================================
-    -- 🛠️ HELPER LEGIT FISHING KHUSUS DISCO (PORTED FROM FISHING TAB)
-    -- =================================================================
-    local Disco_LegitActive = false
-    local Disco_ClickThread = nil
-    local Disco_ClickSpeed = 0.05 -- Kecepatan klik legit
-
-    local function performDiscoClick()
-        if FishingController and Disco_LegitActive then
-            FishingController:RequestFishingMinigameClick()
-            task.wait(Disco_ClickSpeed)
-        end
-    end
-
-    -- Hook FishingRodStarted (Menangani Minigame Otomatis)
-    local oldRodStarted_Disco = FishingController.FishingRodStarted
-    FishingController.FishingRodStarted = function(self, ...)
-        oldRodStarted_Disco(self, ...) -- Jalankan fungsi asli biar game ga error
-        
-        if Disco_LegitActive then
-            if Disco_ClickThread then task.cancel(Disco_ClickThread) end
-            
-            Disco_ClickThread = task.spawn(function()
-                while Disco_LegitActive do
-                    performDiscoClick()
-                end
-            end)
-        end
-    end
-
-    -- Hook FishingStopped (Mematikan Thread Klik)
-    local oldRodStopped_Disco = FishingController.FishingStopped
-    FishingController.FishingStopped = function(self, ...)
-        oldRodStopped_Disco(self, ...) -- Jalankan fungsi asli
-        
-        if Disco_ClickThread then 
-            task.cancel(Disco_ClickThread) 
-            Disco_ClickThread = nil 
-        end
-    end
-
-    -- Fungsi Toggle State Legit Disco
-    local function SetDiscoLegitState(bool)
-        Disco_LegitActive = bool
-        if not bool and Disco_ClickThread then
-            task.cancel(Disco_ClickThread)
-            Disco_ClickThread = nil
-        end
-    end
-    -- =================================================================
-
-    -- [[ FUNGSI CEK GATE ]]
-    local function IsGateLocked()
-        local gateModel = workspace:FindFirstChild("ClassicEvent") 
-            and workspace.ClassicEvent:FindFirstChild("Finished") 
-            and workspace.ClassicEvent.Finished:FindFirstChild("Gate") 
-            and workspace.ClassicEvent.Finished.Gate:FindFirstChild("LeftGate")
-        
-        if not gateModel then return true end 
-
-        local currentLook = gateModel:GetPivot().LookVector
-        local lockedLook = LOCKED_CFRAME.LookVector
-        return currentLook:Dot(lockedLook) > 0.99
-    end
-
-    -- [[ MONITOR STATUS GATE ]]
-    task.spawn(function()
-        while true do
-            if not DISCO_UNLOCK_STATE and DISCO_STATUS_PARAGRAPH then
-                if IsGateLocked() then
-                    DISCO_STATUS_PARAGRAPH:SetTitle("Disco Gate: LOCKED 🔒")
-                    DISCO_STATUS_PARAGRAPH:SetDesc("Gate terkunci. aktifkan auto unlock.")
-                else
-                    DISCO_STATUS_PARAGRAPH:SetTitle("Disco Gate: UNLOCKED ✅")
-                    DISCO_STATUS_PARAGRAPH:SetDesc("Gate terbuka!")
-                end
-            end
-            task.wait(0.5)
-        end
-    end)
-
-    -- Helper Inventory
-    local function IsItemAvailable_Disco(itemName)
-        local replion = GetPlayerDataReplion()
-        if not replion then return false end
-        local success, inventoryData = pcall(function() return replion:GetExpect("Inventory") end)
-        if not success or not inventoryData or not inventoryData.Items then return false end
-        for _, item in ipairs(inventoryData.Items) do
-            if item.Identifier == itemName then return true end
-            local name, _ = GetFishNameAndRarity(item)
-            if name == itemName and (item.Count or 1) >= 1 then return true end
-        end
-        return false
-    end
-
-    -- MAIN LOGIC LOOP
-    local function RunDiscoLoop()
-        if DISCO_UNLOCK_THREAD then task.cancel(DISCO_UNLOCK_THREAD) end
-        if DISCO_SPAM_THREAD then task.cancel(DISCO_SPAM_THREAD) end
-        if DISCO_EQUIP_THREAD then task.cancel(DISCO_EQUIP_THREAD) end
-        
-        -- Matikan Server Auto Fishing biar ga bentrok
-        if RF_UpdateAutoFishingState then RF_UpdateAutoFishingState:InvokeServer(false) end
-
-        -- [THREAD 1] BACKGROUND SPAMMER (Unlock Gate)
-        DISCO_SPAM_THREAD = task.spawn(function()
-            while DISCO_UNLOCK_STATE do
-                if RE_PlaceCavernTotemItem then
-                    for _, pillar in ipairs(DISCO_PILLARS) do
-                        pcall(function() RE_PlaceCavernTotemItem:FireServer(pillar) end)
-                        task.wait(2.1)
-                        if not DISCO_UNLOCK_STATE then break end
-                    end
-                else
-                    task.wait(1)
-                end
-            end
-        end)
-
-        -- [THREAD 2] AUTO EQUIP ROD (Anti-Stuck)
-        DISCO_EQUIP_THREAD = task.spawn(function()
-            while DISCO_UNLOCK_STATE do
-                pcall(function() if RE_EquipToolFromHotbar then RE_EquipToolFromHotbar:FireServer(1) end end)
-                task.wait(0.1) -- Spam equip agar selalu pegang rod
-            end
-        end)
-
-        -- [THREAD 3] FARMING LOGIC (MAIN)
-        DISCO_UNLOCK_THREAD = task.spawn(function()
-            local isFarming = false
-            
-            -- Teleport ke Iron Cavern (Sekali di awal)
-            if IsGateLocked() then
-                TeleportToLookAt(IRON_CAVERN_POS_FIXED, IRON_CAVERN_LOOK_FIXED)
-                task.wait(1.0)
-                isFarming = true
-            end
-
-            while DISCO_UNLOCK_STATE do
-                -- 1. Cek Status Gate
-                if not IsGateLocked() then
-                    DISCO_STATUS_PARAGRAPH:SetTitle("Disco Gate: UNLOCKED ✅")
-                    DISCO_STATUS_PARAGRAPH:SetDesc("Event Selesai. Stop Farming.")
-                    WindUI:Notify({ Title = "Gate Terbuka!", Content = "Auto Unlock Selesai.", Duration = 5, Icon = "check" })
-                    break
-                else
-                    DISCO_STATUS_PARAGRAPH:SetTitle("Disco Gate: LOCKED 🔒")
-                end
-
-                -- 2. Cek Ikan apa yang kurang di tas
-                local missingItem = nil
-                for _, pillar in ipairs(DISCO_PILLARS) do
-                    if not IsItemAvailable_Disco(pillar) then
-                        missingItem = pillar
-                        break 
-                    end
-                end
-
-                -- 3. Logic Farming (Menggunakan Helper Legit Baru)
-                if missingItem then
-                    -- Cek posisi, balikin kalau kejauhan (jatuh/mati)
-                    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp and (hrp.Position - IRON_CAVERN_POS_FIXED).Magnitude > 50 then
-                        TeleportToLookAt(IRON_CAVERN_POS_FIXED, IRON_CAVERN_LOOK_FIXED)
-                        task.wait(0.5)
-                    end
-
-                    DISCO_STATUS_PARAGRAPH:SetDesc("Farming: " .. missingItem)
-                    
-                    -- Aktifkan Legit Fishing State
-                    SetDiscoLegitState(true) 
-                    if RF_UpdateAutoFishingState then RF_UpdateAutoFishingState:InvokeServer(true) end
-
-                else
-                    -- Item lengkap, matikan fishing, fokus spam remote (Thread 1)
-                    DISCO_STATUS_PARAGRAPH:SetDesc("Item Lengkap. Mencoba membuka gate...")
-                    SetDiscoLegitState(false)
-                    if RF_UpdateAutoFishingState then RF_UpdateAutoFishingState:InvokeServer(false) end
-                end
-                
-                task.wait(0.5)
-            end
-
-            -- Cleanup saat loop berhenti
-            DISCO_UNLOCK_STATE = false
-            SetDiscoLegitState(false) -- Matikan clicker
-            if DISCO_SPAM_THREAD then task.cancel(DISCO_SPAM_THREAD) end
-            if DISCO_EQUIP_THREAD then task.cancel(DISCO_EQUIP_THREAD) end
-            if RF_UpdateAutoFishingState then RF_UpdateAutoFishingState:InvokeServer(false) end
-            
-            Event:GetElementByTitle("Auto Unlock Disco Gate"):Set(false)
-            pcall(function() RE_EquipToolFromHotbar:FireServer(0) end)
-        end)
-    end
-
-    local tdisco = disco:Toggle({
-        Title = "Auto Unlock Disco Gate",
-        Value = false,
-        Callback = function(state)
-            DISCO_UNLOCK_STATE = state
-            if state then
-                if not RE_PlaceCavernTotemItem then
-                     RE_PlaceCavernTotemItem = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net:FindFirstChild("RE/PlaceCavernTotemItem")
-                end
-                
-                if not IsGateLocked() then
-                     WindUI:Notify({ Title = "Info", Content = "Gate sudah terbuka.", Duration = 3 })
-                     return false
-                end
-
-                RunDiscoLoop()
-                WindUI:Notify({ Title = "Disco Brute Force", Content = "Legit Farming + Spam Remote Started.", Duration = 3, Icon = "music" })
-            else
-                -- Matikan semua thread dan helper
-                if DISCO_UNLOCK_THREAD then task.cancel(DISCO_UNLOCK_THREAD) end
-                if DISCO_SPAM_THREAD then task.cancel(DISCO_SPAM_THREAD) end
-                if DISCO_EQUIP_THREAD then task.cancel(DISCO_EQUIP_THREAD) end
-                SetDiscoLegitState(false) -- PENTING: Matikan state klik
-                
-                if RF_UpdateAutoFishingState then RF_UpdateAutoFishingState:InvokeServer(false) end
-                WindUI:Notify({ Title = "Stopped", Duration = 2 })
-            end
-        end
-    })
+    -- Syarat Buka: Jam Genap (8, 10, 12, dst) DAN Menit di bawah 30
+    local isEventHour = (hour % 2 == 0) and (hour >= 8 or hour < 8) 
+    local isOpen = isEventHour and (min < 30)
     
-
-    -- [LOGIKA BARU] AUTO JOIN DISCO + STATUS UI
-    local autoJoinDiscoState = false
-    local autoJoinDiscoThread = nil
-    local lastPositionBeforeDisco = nil
-    
-    -- Tambahkan Paragraph Status Baru
-    local DISCO_EVENT_STATUS_PARAGRAPH = disco:Paragraph({
-        Title = "Disco Event Status: OFF",
-        Content = "Aktifkan toggle untuk memantau status event...",
-        Icon = "activity"
-    })
-    
-    local function IsDiscoOpen()
-        -- Cek Model Locked di path yang kamu berikan
-        local lockedPath = workspace:FindFirstChild("ClassicEvent") 
-            and workspace.ClassicEvent:FindFirstChild("DiscoEvent") 
-            and workspace.ClassicEvent.DiscoEvent:FindFirstChild("Locked")
-            
-        if lockedPath then
-            -- Menggunakan GetPivot() agar kompatibel jika itu Model atau BasePart
-            local pivot = lockedPath:GetPivot()
-            
-            -- Data kamu:
-            -- Locked Open (Turun): Y = -642.64
-            -- Locked Closed (Naik): Y = -556.89
-            -- Kita pakai threshold -600. Jika Y lebih KECIL dari -600 (lebih dalam), berarti OPEN.
-            
-            if pivot.Position.Y < -600 then
-                return true -- OPEN / ACTIVE
-            else
-                return false -- CLOSED / INACTIVE
-            end
-        end
-        return false -- Default closed if not found
+    local statusDesc = ""
+    if isOpen then
+        statusDesc = "EVENT AKTIF! Berakhir dalam " .. (30 - min) .. " menit."
+    else
+        -- Hitung mundur sederhana ke jam genap berikutnya
+        statusDesc = "Event tutup. Kembali ke posisi semula jika baru saja selesai."
     end
+    
+    return isOpen, statusDesc
+end
 
-    local function RunAutoJoinDiscoLoop()
-        if autoJoinDiscoThread then task.cancel(autoJoinDiscoThread) end
+-- [[ MAIN LOOP ]]
+local function RunAutoJoinXmasLoop()
+    if autoJoinXmasThread then task.cancel(autoJoinXmasThread) end
+    
+    autoJoinXmasThread = task.spawn(function()
+        local isAtXmas = false
         
-        autoJoinDiscoThread = task.spawn(function()
-            local isAtDisco = false
+        while autoJoinXmasState do
+            local isOpen, desc = GetXmasEventStatus()
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             
-            -- Update status awal
-            DISCO_EVENT_STATUS_PARAGRAPH:SetTitle("Disco Event Status: MONITORING...")
-            
-            while autoJoinDiscoState do
-                local isOpen = IsDiscoOpen()
-                
-                -- UPDATE STATUS PANEL (REAL-TIME)
-                if isOpen then
-                    DISCO_EVENT_STATUS_PARAGRAPH:SetTitle("Disco Event: OPEN 🕺")
-                    DISCO_EVENT_STATUS_PARAGRAPH:SetDesc("Kolam disco terbuka! (Event Aktif)")
-                else
-                    DISCO_EVENT_STATUS_PARAGRAPH:SetTitle("Disco Event: CLOSED 💤")
-                    DISCO_EVENT_STATUS_PARAGRAPH:SetDesc("Event belum dimulai / sudah berakhir.")
+            -- UPDATE UI
+            XMAS_STATUS_PARAGRAPH:SetDesc(desc)
+
+            -- LOGIKA TELEPORT MASUK (JOIN)
+            if isOpen and not isAtXmas then
+                if hrp then
+                    -- SIMPAN POSISI SEBELUM TP
+                    lastPosBeforeXmas = {
+                        CFrame = hrp.CFrame -- Menyimpan posisi dan arah hadap sekaligus
+                    }
+                    print("Posisi asal disimpan sebelum Join Xmas Cave.")
                 end
                 
-                -- LOGIKA TELEPORT
-                if isOpen and not isAtDisco then
-                    -- Event Buka: Simpan posisi & Teleport
-                    local hrp = GetHRP()
+                XMAS_STATUS_PARAGRAPH:SetTitle("Christmas Cave: OPEN 🎁")
+                TeleportToLookAt(XMAS_CAVE_POS, XMAS_CAVE_LOOK)
+                isAtXmas = true
+                
+                WindUI:Notify({ 
+                    Title = "Event Dimulai!", 
+                    Content = "Teleport ke Christmas Cave. Posisi asal dicatat.", 
+                    Duration = 5, 
+                    Icon = "snowflake" 
+                })
+            
+            -- LOGIKA TELEPORT KELUAR (RETURN)
+            elseif not isOpen and isAtXmas then
+                XMAS_STATUS_PARAGRAPH:SetTitle("Christmas Cave: CLOSED 🔒")
+                
+                if lastPosBeforeXmas and lastPosBeforeXmas.CFrame then
+                    -- Kembalikan ke posisi CFrame asal
                     if hrp then
-                        lastPositionBeforeDisco = {Pos = hrp.Position, Look = hrp.CFrame.LookVector}
+                        hrp.CFrame = lastPosBeforeXmas.CFrame
                     end
                     
-                    TeleportToLookAt(DISCO_EVENT_POS, DISCO_EVENT_LOOK)
-                    isAtDisco = true
-                    WindUI:Notify({ Title = "Disco Open!", Content = "Teleporting to Disco Event...", Duration = 4, Icon = "music" })
-                    
-                elseif not isOpen and isAtDisco then
-                    -- Event Tutup: Balik ke posisi awal
-                    if lastPositionBeforeDisco then
-                        TeleportToLookAt(lastPositionBeforeDisco.Pos, lastPositionBeforeDisco.Look)
-                        lastPositionBeforeDisco = nil
-                        WindUI:Notify({ Title = "Disco Selesai", Content = "Kembali ke posisi semula.", Duration = 4, Icon = "repeat" })
-                    end
-                    isAtDisco = false
+                    WindUI:Notify({ 
+                        Title = "Event Berakhir", 
+                        Content = "Kembali ke posisi semula.", 
+                        Duration = 5, 
+                        Icon = "home" 
+                    })
+                    print("Berhasil kembali ke posisi awal.")
                 end
                 
-                task.wait(1) -- Cek setiap 1 detik
+                isAtXmas = false
+                lastPosBeforeXmas = nil -- Reset data setelah berhasil kembali
             end
-        end)
+            
+            task.wait(2) -- Cek setiap 2 detik agar responsif saat menit berubah ke :30
+        end
+    end)
+end
+
+-- --- UI CONTROLS ---
+xmas:Toggle({
+    Title = "Auto Join & Return Xmas",
+    Desc = "Otomatis TP masuk (00-30 min) dan kembali ke asal saat selesai.",
+    Value = false,
+    Callback = function(state)
+        autoJoinXmasState = state
+        if state then
+            RunAutoJoinXmasLoop()
+        else
+            if autoJoinXmasThread then task.cancel(autoJoinXmasThread) end
+            isAtXmas = false -- Reset state agar bisa TP lagi jika dinyalakan ulang
+            XMAS_STATUS_PARAGRAPH:SetTitle("Xmas Cave Status: OFF")
+        end
     end
+})
 
-    -- TOGGLE AUTO JOIN DISCO (Updated)
-    local joindisco = Reg("joindisc",disco:Toggle({
-        Title = "Auto Join Disco Event",
-        Desc = "Otomatis TP saat event aktif dan kembali ke tempat awal saat event berakhir",
-        Value = false,
-        Callback = function(state)
-            autoJoinDiscoState = state
-            if state then
-                WindUI:Notify({ Title = "Auto Join Disco ON", Content = "Memantau status Disco Gate...", Duration = 3, Icon = "check" })
-                RunAutoJoinDiscoLoop()
-            else
-                if autoJoinDiscoThread then task.cancel(autoJoinDiscoThread) end
-                
-                -- Reset Status Panel saat dimatikan
-                DISCO_EVENT_STATUS_PARAGRAPH:SetTitle("Disco Event Status: OFF")
-                DISCO_EVENT_STATUS_PARAGRAPH:SetDesc("Aktifkan toggle untuk memantau status event...")
-                
-                WindUI:Notify({ Title = "Auto Join Disco OFF", Duration = 3, Icon = "x" })
-            end
-        end
-    }))
-
-    local bdisco = disco:Button({
-        Title = "Teleport to Disco Event",
-        Icon = "map-pin",
-        Callback = function()
-            TeleportToLookAt(DISCO_EVENT_POS, DISCO_EVENT_LOOK)
-        end
-    })
+xmas:Button({
+    Title = "Manual TP ke Xmas Cave",
+    Icon = "map-pin",
+    Callback = function()
+        TeleportToLookAt(XMAS_CAVE_POS, XMAS_CAVE_LOOK)
+    end
+})
 
 Event:Divider()
 
@@ -8653,7 +8401,7 @@ end
 
 Window:EditOpenButton({
     Title = "",
-    Icon = "rbxassetid://113754783010414",
+    Icon = "rbxassetid://85688359938693",
     CornerRadius = UDim.new(0,40),
     StrokeThickness = 0.5,
     Color = ColorSequence.new(
