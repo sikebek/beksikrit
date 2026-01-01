@@ -5972,7 +5972,7 @@ local DEFAULT_ROD_DELAY = 3.85
     -- Fungsi Baca Data Aman
     local function GetGhostfinProgressSafe()
         local data = { Header = "Loading...", Q1={Text="...",Done=false}, Q2={Text="...",Done=false}, Q3={Text="...",Done=false}, Q4={Text="...",Done=false}, AllDone=false, BoardFound=false }
-        local board = workspace:FindFirstChild("!!! MENU RINGS") and workspace["!!! MENU RINGS"]:FindFirstChild("Deep Sea Tracker") and workspace["!!! MENU RINGS"]["Deep Sea Tracker"]:FindFirstChild("Board")
+        local board = workspace:FindFirstChild("!!! DEPENDENCIES") and workspace["!!! DEPENDENCIES"]:FindFirstChild("QuestTrackers") and workspace["!!! DEPENDENCIES"]["QuestTrackers"]:FindFirstChild("Deep Sea Tracker") and workspace["!!! DEPENDENCIES"]["QuestTrackers"]["Deep Sea Tracker"]:FindFirstChild("Board")
         if board then
             data.BoardFound = true 
             pcall(function()
@@ -6089,7 +6089,7 @@ local DEFAULT_ROD_DELAY = 3.85
 
     local function GetElementProgressSafe()
         local data = { Header = "Loading...", Q1={Text="...",Done=false}, Q2={Text="...",Done=false}, Q3={Text="...",Done=false}, Q4={Text="...",Done=false}, AllDone=false, BoardFound=false }
-        local board = workspace:FindFirstChild("!!! MENU RINGS") and workspace["!!! MENU RINGS"]:FindFirstChild("Element Tracker") and workspace["!!! MENU RINGS"]["Element Tracker"]:FindFirstChild("Board")
+        local board = workspace:FindFirstChild("!!! DEPENDENCIES") and workspace["!!! DEPENDENCIES"]:FindFirstChild("QuestTrackers") and workspace["!!! DEPENDENCIES"]["QuestTrackers"]:FindFirstChild("Element Tracker") and workspace["!!! DEPENDENCIES"]["QuestTrackers"]["Element Tracker"]:FindFirstChild("Board")
         if board then
             data.BoardFound = true
             pcall(function()
