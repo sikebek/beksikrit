@@ -6707,22 +6707,28 @@ local XMAS_STATUS_PARAGRAPH = xmas:Paragraph({
     Icon = "clock"
 })
 
--- [[ FUNGSI LOGIKA WAKTU ]]
+-- [[ FUNGSI LOGIKA WAKTU UPDATED ]]
 local function GetXmasEventStatus()
     local serverTime = os.date("!*t") -- UTC Server Time
     local hour = serverTime.hour
     local min = serverTime.min
+    local sec = serverTime.sec
     
-    -- Syarat Buka: Jam Genap (8, 10, 12, dst) DAN Menit di bawah 30
     local isEventHour = (hour % 2 == 0) and (hour >= 8 or hour < 8) 
+    
+    -- Event dianggap "Open" hanya sampai menit 29 detik 45
     local isOpen = isEventHour and (min < 30)
+    
+    -- Kondisi khusus: Jika sudah menit 29 dan detik >= 45, paksa status jadi Closed
+    if min == 29 and sec >= 45 then
+        isOpen = false
+    end
     
     local statusDesc = ""
     if isOpen then
-        statusDesc = "EVENT AKTIF! Berakhir dalam " .. (30 - min) .. " menit."
+        statusDesc = "EVENT AKTIF! Pulang otomatis dalam " .. (29 - min) .. "m " .. (45 - sec) .. "s"
     else
-        -- Hitung mundur sederhana ke jam genap berikutnya
-        statusDesc = "Event tutup. Kembali ke posisi semula jika baru saja selesai."
+        statusDesc = "Event tutup atau sedang dalam masa tenggang pulang (15s)."
     end
     
     return isOpen, statusDesc
@@ -6739,54 +6745,40 @@ local function RunAutoJoinXmasLoop()
             local isOpen, desc = GetXmasEventStatus()
             local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             
-            -- UPDATE UI
             XMAS_STATUS_PARAGRAPH:SetDesc(desc)
 
-            -- LOGIKA TELEPORT MASUK (JOIN)
+            -- JOIN (Tetap sama)
             if isOpen and not isAtXmas then
                 if hrp then
-                    -- SIMPAN POSISI SEBELUM TP
-                    lastPosBeforeXmas = {
-                        CFrame = hrp.CFrame -- Menyimpan posisi dan arah hadap sekaligus
-                    }
-                    print("Posisi asal disimpan sebelum Join Xmas Cave.")
+                    lastPosBeforeXmas = { CFrame = hrp.CFrame }
                 end
-                
                 XMAS_STATUS_PARAGRAPH:SetTitle("Christmas Cave: OPEN 🎁")
                 TeleportToLookAt(XMAS_CAVE_POS, XMAS_CAVE_LOOK)
                 isAtXmas = true
-                
-                WindUI:Notify({ 
-                    Title = "Event Dimulai!", 
-                    Content = "Teleport ke Christmas Cave. Posisi asal dicatat.", 
-                    Duration = 5, 
-                    Icon = "snowflake" 
-                })
+                WindUI:Notify({ Title = "Event Dimulai", Content = "Teleport ke Cave...", Duration = 5 })
             
-            -- LOGIKA TELEPORT KELUAR (RETURN)
+            -- RETURN (Terpicu 15 detik lebih awal karena logika GetXmasEventStatus)
             elseif not isOpen and isAtXmas then
-                XMAS_STATUS_PARAGRAPH:SetTitle("Christmas Cave: CLOSED 🔒")
+                XMAS_STATUS_PARAGRAPH:SetTitle("Christmas Cave: EXITING... 🏃")
                 
                 if lastPosBeforeXmas and lastPosBeforeXmas.CFrame then
-                    -- Kembalikan ke posisi CFrame asal
                     if hrp then
                         hrp.CFrame = lastPosBeforeXmas.CFrame
                     end
                     
                     WindUI:Notify({ 
-                        Title = "Event Berakhir", 
-                        Content = "Kembali ke posisi semula.", 
+                        Title = "Safety Return", 
+                        Content = "Pulang 15 detik lebih awal demi keamanan.", 
                         Duration = 5, 
-                        Icon = "home" 
+                        Icon = "shield-check" 
                     })
-                    print("Berhasil kembali ke posisi awal.")
                 end
                 
                 isAtXmas = false
-                lastPosBeforeXmas = nil -- Reset data setelah berhasil kembali
+                lastPosBeforeXmas = nil
             end
             
-            task.wait(2) -- Cek setiap 2 detik agar responsif saat menit berubah ke :30
+            task.wait(1) -- Cek setiap detik agar presisi
         end
     end)
 end
