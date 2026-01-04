@@ -729,7 +729,7 @@ local function CensorName(name)
 end
 
 local FishingAreas = {
-        ["Iron Cavern"] = {Pos = Vector3.new(-8792.546, -588.000, 230.642), Look = Vector3.new(0.718, 0.000, 0.696)},
+        ["Diamond NPC"] = {Pos = Vector3.new(-1774.300, -222.620, 23919.027), Look = Vector3.new(-0.546, 2.90, 0.837)},
         ["Disco Event"] = {Pos = Vector3.new(-8641.672, -547.500, 160.322), Look = Vector3.new(0.984, -0.000, 0.176)},
         ["Christmas Cave"] = {Pos = Vector3.new(606.948, -580.581, 8863.126), Look = Vector3.new(-0.843, 0.000, 0.536)},
         ["Ancient Jungle"] = {Pos = Vector3.new(1535.639, 3.159, -193.352), Look = Vector3.new(0.505, -0.000, 0.863)},
