@@ -2742,8 +2742,8 @@ end
         Title = "Filter Item Name",
         Values = getTradeableItemOptions(),
         Value = false,
-        Multi = true,
-        AllowNone = true,
+        Multi = false,
+        AllowNone = false,
         Callback = function(name)
             selectedTradeItemName = name or nil -- Set ke nil jika "None"
         end
@@ -2754,8 +2754,8 @@ end
         Title = "Filter Item Rarity",
         Values = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "SECRET", "Trophy", "Collectible", "DEV", "Default"},
         Value = false,
-        Multi = true,
-        AllowNone = true,
+        Multi = false,
+        AllowNone = false,
         Callback = function(rarity)
             selectedTradeRarity = rarity or nil -- Set ke nil jika "None"
         end
