@@ -2742,7 +2742,7 @@ end
         Title = "Filter Item Name",
         Values = getTradeableItemOptions(),
         Value = false,
-        Multi = false,
+        Multi = true,
         AllowNone = true,
         Callback = function(name)
             selectedTradeItemName = name or nil -- Set ke nil jika "None"
@@ -2754,7 +2754,7 @@ end
         Title = "Filter Item Rarity",
         Values = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "SECRET", "Trophy", "Collectible", "DEV", "Default"},
         Value = false,
-        Multi = false,
+        Multi = true,
         AllowNone = true,
         Callback = function(rarity)
             selectedTradeRarity = rarity or nil -- Set ke nil jika "None"
@@ -6687,48 +6687,63 @@ end
 end
     })
 -- =================================================================
--- 🎄 CHRISTMAS CAVE EVENT (AUTO-RETURN SUPPORT)
+-- 🎄 CHRISTMAS CAVE EVENT (ULTRA SYNC & PRECISION RETURN)
 -- =================================================================
 Event:Divider()
 local xmas = Event:Section({ Title = "Christmas Cave Event", TextSize = 18,})
 
 -- --- CONFIGURATIONS ---
-local XMAS_CAVE_POS = Vector3.new(606.948, -580.581, 8863.126) -- GANTI dengan koordinat Xmas Cave kamu
-local XMAS_CAVE_LOOK = Vector3.new(-0.843, 0.000, 0.536)      -- GANTI dengan look vector tujuan
-
+local XMAS_CAVE_POS = Vector3.new(606.948, -580.581, 8863.126) -- Sesuaikan koordinatmu
+local XMAS_CAVE_LOOK = Vector3.new(-0.843, 0.000, 0.536)
 local autoJoinXmasState = false
 local autoJoinXmasThread = nil
-local lastPosBeforeXmas = nil -- Variabel penyimpan posisi asal
+local lastCFrameBeforeXmas = nil -- Menggunakan CFrame agar presisi
 
 -- UI STATUS
 local XMAS_STATUS_PARAGRAPH = xmas:Paragraph({ 
-    Title = "Xmas Cave Status: Checking...", 
-    Content = "Menghitung waktu server...",
+    Title = "Xmas Cave Status: Syncing...", 
+    Content = "Menghubungkan ke waktu server...",
     Icon = "clock"
 })
 
--- [[ FUNGSI LOGIKA WAKTU UPDATED ]]
+-- [[ FUNGSI LOGIKA WAKTU SINKRON - UPDATE 3 JAM SIKLIS ]]
 local function GetXmasEventStatus()
-    local serverTime = os.date("!*t") -- UTC Server Time
-    local hour = serverTime.hour
-    local min = serverTime.min
-    local sec = serverTime.sec
+    local sTime = workspace:GetServerTimeNow()
     
-    local isEventHour = (hour % 2 == 0) and (hour >= 8 or hour < 8) 
+    -- Konfigurasi Baru:
+    local cycleTime = 10800    -- 3 Jam dalam detik (Total Jeda + Event)
+    local eventDuration = 5400 -- 90 Menit dalam detik (Durasi Event)
     
-    -- Event dianggap "Open" hanya sampai menit 29 detik 45
-    local isOpen = isEventHour and (min < 30)
+    -- Menghitung posisi waktu saat ini di dalam siklus 3 jam
+    local currentTimeInCycle = sTime % cycleTime
     
-    -- Kondisi khusus: Jika sudah menit 29 dan detik >= 45, paksa status jadi Closed
-    if min == 29 and sec >= 45 then
+    -- Event dianggap Buka jika waktu saat ini kurang dari 90 menit (5400 detik)
+    local isOpen = currentTimeInCycle < eventDuration
+    
+    -- SAFETY RETURN: Paksa tutup 20 detik sebelum menit ke-90 berakhir (5380 detik)
+    if isOpen and currentTimeInCycle >= (eventDuration - 20) then
         isOpen = false
     end
     
     local statusDesc = ""
     if isOpen then
-        statusDesc = "EVENT AKTIF! Pulang otomatis dalam " .. (29 - min) .. "m " .. (45 - sec) .. "s"
+        -- Hitung mundur sisa waktu 90 menit (dikurangi 20 detik buffer safety)
+        local remainingSec = (eventDuration - 20) - currentTimeInCycle
+        local rMin = math.floor(remainingSec / 60)
+        local rSec = math.floor(remainingSec % 60)
+        statusDesc = string.format("EVENT AKTIF! Pulang serempak dalam %02d:%02d", rMin, rSec)
     else
-        statusDesc = "Event tutup atau sedang dalam masa tenggang pulang (15s)."
+        -- Hitung mundur kapan event berikutnya dimulai
+        local waitSec = cycleTime - currentTimeInCycle
+        local wHour = math.floor(waitSec / 3600)
+        local wMin = math.floor((waitSec % 3600) / 60)
+        local wSec = math.floor(waitSec % 60)
+        
+        if wHour > 0 then
+            statusDesc = string.format("Event Tutup. Mulai dalam %01d jam %02d menit", wHour, wMin)
+        else
+            statusDesc = string.format("Event Tutup. Mulai dalam %02d menit %02d detik", wMin, wSec)
+        end
     end
     
     return isOpen, statusDesc
@@ -6743,50 +6758,58 @@ local function RunAutoJoinXmasLoop()
         
         while autoJoinXmasState do
             local isOpen, desc = GetXmasEventStatus()
-            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local hrp = GetHRP() -- Menggunakan helper GetHRP() dari script aslimu
             
-            XMAS_STATUS_PARAGRAPH:SetDesc(desc)
+            if XMAS_STATUS_PARAGRAPH then
+                XMAS_STATUS_PARAGRAPH:SetDesc(desc)
+            end
 
-            -- JOIN (Tetap sama)
+            -- LOGIKA MASUK (JOIN)
             if isOpen and not isAtXmas then
                 if hrp then
-                    lastPosBeforeXmas = { CFrame = hrp.CFrame }
+                    -- MENGIKUTI LOGIKA ANCIENT LOCHNESS: Simpan Full CFrame
+                    lastCFrameBeforeXmas = hrp.CFrame 
                 end
+                
                 XMAS_STATUS_PARAGRAPH:SetTitle("Christmas Cave: OPEN 🎁")
                 TeleportToLookAt(XMAS_CAVE_POS, XMAS_CAVE_LOOK)
                 isAtXmas = true
-                WindUI:Notify({ Title = "Event Dimulai", Content = "Teleport ke Cave...", Duration = 5 })
+                WindUI:Notify({ Title = "Xmas Event", Content = "Sinkronisasi Server Berhasil. Selamat Farming!", Duration = 5, Icon = "snowflake" })
             
-            -- RETURN (Terpicu 15 detik lebih awal karena logika GetXmasEventStatus)
+            -- LOGIKA KELUAR (PRECISION RETURN - 20s BEFORE END)
             elseif not isOpen and isAtXmas then
-                XMAS_STATUS_PARAGRAPH:SetTitle("Christmas Cave: EXITING... 🏃")
+                XMAS_STATUS_PARAGRAPH:SetTitle("Christmas Cave: SYNC EXIT 🏃")
                 
-                if lastPosBeforeXmas and lastPosBeforeXmas.CFrame then
-                    if hrp then
-                        hrp.CFrame = lastPosBeforeXmas.CFrame
+                if hrp then
+                    if lastCFrameBeforeXmas then
+                        -- Kembalikan ke CFrame asal (Posisi + Rotasi)
+                        hrp.CFrame = lastCFrameBeforeXmas
+                        
+                        -- Stabilisasi (Anti-meleset)
+                        hrp.Anchored = true
+                        task.wait(0.5)
+                        hrp.Anchored = false
+                    else
+                        -- Fallback jika data CFrame hilang (misal mati/reset)
+                        -- Kembali ke Safe Zone (Enchant Room) sesuai koordinat di scriptmu
+                        hrp.CFrame = CFrame.new(3255.67, -1301.53, 1371.79)
                     end
-                    
-                    WindUI:Notify({ 
-                        Title = "Safety Return", 
-                        Content = "Pulang 15 detik lebih awal demi keamanan.", 
-                        Duration = 5, 
-                        Icon = "shield-check" 
-                    })
                 end
                 
                 isAtXmas = false
-                lastPosBeforeXmas = nil
+                lastCFrameBeforeXmas = nil
+                WindUI:Notify({ Title = "Safety Return", Content = "Pulang 20 detik lebih awal agar tidak terjebak!", Duration = 5, Icon = "shield-check" })
             end
             
-            task.wait(1) -- Cek setiap detik agar presisi
+            task.wait(0.1) -- High-precision check (100ms)
         end
     end)
 end
 
--- --- UI CONTROLS ---
+-- --- UI TOGGLE ---
 xmas:Toggle({
     Title = "Auto Join & Return Xmas",
-    Desc = "Otomatis TP masuk (00-30 min) dan kembali ke asal saat selesai.",
+    Desc = "Sinkron server, pulang serempak 20 detik sebelum selesai.",
     Value = false,
     Callback = function(state)
         autoJoinXmasState = state
@@ -6794,17 +6817,9 @@ xmas:Toggle({
             RunAutoJoinXmasLoop()
         else
             if autoJoinXmasThread then task.cancel(autoJoinXmasThread) end
-            isAtXmas = false -- Reset state agar bisa TP lagi jika dinyalakan ulang
+            isAtXmas = false
             XMAS_STATUS_PARAGRAPH:SetTitle("Xmas Cave Status: OFF")
         end
-    end
-})
-
-xmas:Button({
-    Title = "Manual TP ke Xmas Cave",
-    Icon = "map-pin",
-    Callback = function()
-        TeleportToLookAt(XMAS_CAVE_POS, XMAS_CAVE_LOOK)
     end
 })
 
