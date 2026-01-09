@@ -2397,66 +2397,82 @@ do
     
     local allItemNames = getAutoFavoriteItemOptions()
     
-    -- FUNGSI HELPER: Mendapatkan semua item yang memenuhi kriteria (DIFORWARD KE FAVORITE)
-    -- GANTI FUNGSI LAMA 'GetItemsToFavorite' DENGAN YANG INI:
-
-local function GetItemsToFavorite()
-    local replion = GetPlayerDataReplion()
-    if not replion or not ItemUtility or not TierUtility then return {} end
-
-    local success, inventoryData = pcall(function() return replion:GetExpect("Inventory") end)
-    if not success or not inventoryData or not inventoryData.Items then return {} end
-
-    local itemsToFavorite = {}
+-- =================================================================
+    -- [UPDATE] LOGIKA STRICT (AND) UNTUK FAVORITE
+    -- =================================================================
     
-    -- Cek apakah ada filter yang aktif? (Kalau semua kosong, jangan favorite apa-apa biar aman)
-    local isRarityFilterActive = #selectedRarities > 0
-    local isNameFilterActive = #selectedItemNames > 0
-    local isMutationFilterActive = #selectedMutations > 0
+    local function GetItemsToFavorite()
+        local replion = GetPlayerDataReplion()
+        if not replion or not ItemUtility or not TierUtility then return {} end
 
-    if not (isRarityFilterActive or isNameFilterActive or isMutationFilterActive) then
-        return {} -- Tidak ada filter dipilih, return kosong.
+        local success, inventoryData = pcall(function() return replion:GetExpect("Inventory") end)
+        if not success or not inventoryData or not inventoryData.Items then return {} end
+
+        local itemsToFavorite = {}
+        
+        -- Cek filter mana saja yang aktif
+        local isRarityFilterActive = #selectedRarities > 0
+        local isNameFilterActive = #selectedItemNames > 0
+        local isMutationFilterActive = #selectedMutations > 0
+
+        -- Jika tidak ada satupun filter yang dipilih, jangan lakukan apa-apa (Safety)
+        if not (isRarityFilterActive or isNameFilterActive or isMutationFilterActive) then
+            return {} 
+        end
+
+        for _, item in ipairs(inventoryData.Items) do
+            -- SKIP JIKA SUDAH FAVORIT
+            if item.IsFavorite or item.Favorited then continue end
+            
+            local itemUUID = item.UUID
+            if typeof(itemUUID) ~= "string" or itemUUID:len() < 10 then continue end
+            
+            local name, rarity = GetFishNameAndRarity(item)
+            local mutationFilterString = GetItemMutationString(item)
+            
+            -- --- LOGIKA BARU (AND / STRICT) ---
+            -- Kita asumsikan item ini LOLOS dulu (true), lalu kita cek satu per satu.
+            -- Jika ada satu syarat aktif yang GAGAL, maka item ini batal difavorite.
+
+            local passesRarity = true
+            local passesName = true
+            local passesMutation = true
+
+            -- 1. Cek Rarity (Hanya jika user memilih filter Rarity)
+            if isRarityFilterActive then
+                if not table.find(selectedRarities, rarity) then
+                    passesRarity = false
+                end
+            end
+
+            -- 2. Cek Nama (Hanya jika user memilih filter Nama)
+            if isNameFilterActive then
+                if not table.find(selectedItemNames, name) then
+                    passesName = false
+                end
+            end
+
+            -- 3. Cek Mutasi (Hanya jika user memilih filter Mutasi)
+            if isMutationFilterActive then
+                if not table.find(selectedMutations, mutationFilterString) then
+                    passesMutation = false
+                end
+            end
+
+            -- KEPUTUSAN FINAL: 
+            -- Item harus lolos SEMUA filter yang sedang aktif.
+            if passesRarity and passesName and passesMutation then
+                table.insert(itemsToFavorite, itemUUID)
+            end
+        end
+
+        return itemsToFavorite
     end
-
-    for _, item in ipairs(inventoryData.Items) do
-        -- SKIP JIKA SUDAH FAVORIT
-        if item.IsFavorite or item.Favorited then continue end
-        
-        local itemUUID = item.UUID
-        if typeof(itemUUID) ~= "string" or itemUUID:len() < 10 then continue end
-        
-        local name, rarity = GetFishNameAndRarity(item)
-        local mutationFilterString = GetItemMutationString(item)
-        
-        -- LOGIKA BARU (MULTI-SUPPORT / OR LOGIC)
-        local isMatch = false
-
-        -- 1. Cek Rarity (Hanya jika filter rarity dipilih)
-        if isRarityFilterActive and table.find(selectedRarities, rarity) then
-            isMatch = true
-        end
-
-        -- 2. Cek Nama (Hanya jika filter nama dipilih)
-        -- Kita pakai 'if not isMatch' biar gak double check kalau udah match di rarity
-        if not isMatch and isNameFilterActive and table.find(selectedItemNames, name) then
-            isMatch = true
-        end
-
-        -- 3. Cek Mutasi (Hanya jika filter mutasi dipilih)
-        if not isMatch and isMutationFilterActive and table.find(selectedMutations, mutationFilterString) then
-            isMatch = true
-        end
-
-        -- Jika SALAH SATU kondisi di atas terpenuhi, masukkan ke daftar favorite
-        if isMatch then
-            table.insert(itemsToFavorite, itemUUID)
-        end
-    end
-
-    return itemsToFavorite
-end
     
-    -- PERBAIKAN LOGIKA UNFAVORITE: Mendapatkan item yang SUDAH FAVORIT dan MASUK filter (untuk di-unfavorite)
+-- =================================================================
+    -- [UPDATE] LOGIKA STRICT (AND) UNTUK UNFAVORITE
+    -- =================================================================
+
     local function GetItemsToUnfavorite()
         local replion = GetPlayerDataReplion()
         if not replion or not ItemUtility or not TierUtility then return {} end
@@ -2466,28 +2482,65 @@ end
 
         local itemsToUnfavorite = {}
         
+        -- Cek filter mana saja yang aktif
+        local isRarityFilterActive = #selectedRarities > 0
+        local isNameFilterActive = #selectedItemNames > 0
+        local isMutationFilterActive = #selectedMutations > 0
+
+        -- PENTING: Jika tidak ada filter yang dipilih, JANGAN unfavorite apa pun.
+        -- Ini mencegah ketidaksengajaan menghapus semua favorite.
+        if not (isRarityFilterActive or isNameFilterActive or isMutationFilterActive) then
+            return {} 
+        end
+
         for _, item in ipairs(inventoryData.Items) do
-            -- 1. HANYA PROSES ITEM YANG SUDAH FAVORIT
+            -- 1. HANYA PROSES ITEM YANG SAAT INI SUDAH FAVORITE
+            -- (Kita hanya mau membuka kunci item yang terkunci)
             if not (item.IsFavorite or item.Favorited) then
                 continue
             end
+
             local itemUUID = item.UUID
             if typeof(itemUUID) ~= "string" or itemUUID:len() < 10 then
                 continue
             end
             
-            -- 2. CHECK APAKAH MASUK KE CRITERIA FILTER YANG DIPILIH
+            -- Ambil data item
             local name, rarity = GetFishNameAndRarity(item)
             local mutationFilterString = GetItemMutationString(item)
             
-            local passesRarity = #selectedRarities > 0 and table.find(selectedRarities, rarity)
-            local passesName = #selectedItemNames > 0 and table.find(selectedItemNames, name)
-            local passesMutation = #selectedMutations > 0 and table.find(selectedMutations, mutationFilterString)
+            -- --- LOGIKA BARU (AND / STRICT) ---
+            -- Asumsikan item ini TARGET untuk di-unfavorite (true)
+            -- Kita akan batalkan jika dia tidak memenuhi salah satu syarat aktif.
             
-            -- LOGIKA BARU: Unfavorite JIKA item SUDAH FAVORIT DAN MEMENUHI SALAH SATU CRITERIA FILTER.
-            local isTargetedForUnfavorite = passesRarity or passesName or passesMutation
-            
-            if isTargetedForUnfavorite then
+            local passesRarity = true
+            local passesName = true
+            local passesMutation = true
+
+            -- 1. Cek Rarity (Jika filter aktif)
+            if isRarityFilterActive then
+                if not table.find(selectedRarities, rarity) then
+                    passesRarity = false
+                end
+            end
+
+            -- 2. Cek Nama (Jika filter aktif)
+            if isNameFilterActive then
+                if not table.find(selectedItemNames, name) then
+                    passesName = false
+                end
+            end
+
+            -- 3. Cek Mutasi (Jika filter aktif)
+            if isMutationFilterActive then
+                if not table.find(selectedMutations, mutationFilterString) then
+                    passesMutation = false
+                end
+            end
+
+            -- KEPUTUSAN FINAL:
+            -- Unfavorite HANYA JIKA item memenuhi SEMUA filter yang aktif.
+            if passesRarity and passesName and passesMutation then
                 table.insert(itemsToUnfavorite, itemUUID)
             end
         end
@@ -2560,16 +2613,71 @@ end
         Callback = function(values) selectedRarities = values or {} end
     }))
 
-    local ItemNameDropdown = Reg("dtem",favsec:Dropdown({
-        Title = "by Item Name",
-        Values = allItemNames, -- Menggunakan daftar nama item universal
-        Multi = true, AllowNone = true, Value = false,
-        Callback = function(values) selectedItemNames = values or {} end -- Multi select untuk nama
+    -- =================================================================
+    -- [UPDATE] SEARCH & SELECT ITEM BY NAME
+    -- =================================================================
+    
+    -- Kita deklarasikan dulu variabel dropdownnya agar bisa dipanggil di dalam fungsi Search
+    local ItemNameDropdown 
+
+    -- 1. Input Box untuk Filter Pencarian
+    local SearchInput = favsec:Input({
+        Title = "Search Item Name",
+        Desc = "Ketik nama item di sini untuk menyaring isi dropdown di bawah.",
+        Placeholder = "Contoh: Puffer",
+        Icon = "search",
+        Callback = function(text)
+            -- Jika teks kosong, kembalikan semua item
+            if text == "" or not text then
+                if ItemNameDropdown then
+                    ItemNameDropdown:Refresh(allItemNames, selectedItemNames)
+                end
+                return
+            end
+
+            -- Filter daftar item berdasarkan teks input (Case Insensitive)
+            local filteredItems = {}
+            local lowerText = string.lower(text)
+
+            for _, name in ipairs(allItemNames) do
+                if string.find(string.lower(name), lowerText) then
+                    table.insert(filteredItems, name)
+                end
+            end
+
+            table.sort(filteredItems)
+
+            -- Update isi Dropdown dengan hasil filter
+            -- Kita tetap passing 'selectedItemNames' agar item yang sudah dicentang tidak hilang visualnya (jika didukung lib)
+            if ItemNameDropdown then
+                if #filteredItems == 0 then
+                    ItemNameDropdown:Refresh({"No items found"}, {}) 
+                else
+                    ItemNameDropdown:Refresh(filteredItems, selectedItemNames)
+                end
+            end
+        end
+    })
+
+    -- 2. Dropdown Item (Sekarang Dinamis)
+    ItemNameDropdown = Reg("dtem", favsec:Dropdown({
+        Title = "Select Item Name",
+        Desc = "Pilih item dari hasil pencarian di atas.",
+        Values = allItemNames, -- Default: Tampilkan semua
+        Multi = true, 
+        AllowNone = true, 
+        Value = false,
+        Callback = function(values) 
+            -- Hati-hati: Beberapa library UI me-reset nilai jika opsi "No items found" dipilih
+            if values and values[1] == "No items found" then return end
+            
+            selectedItemNames = values or {} 
+        end 
     }))
 
     local MutationDropdown = Reg("dmut",favsec:Dropdown({
         Title = "by Mutation",
-        Values = {"Shiny", "Gemstone", "Arctic Frost", "Bloodmoon", "Color Burn", "Festive", "Moon Fragment", "Fairy Dust", "Gold", "Midnight", "Radioactive", "Stone", "Albino", "Sandy", "Acidic", "Disco", "Frozen","Noob"},
+        Values = {"1x1x1x1","Albino","Arctic Frost","Bloodmoon","Color Burn","Corrupt","Disco","Fairy Dust","Festive","Frozen","Galaxy","Gemstone","Ghost","Gold","Holographic","Lightning","Midnight","Moon Fragment","Noob","Radioactive","Sandy","Stone"},
         Multi = true, AllowNone = true, Value = false,
         Callback = function(values) selectedMutations = values or {} end
     }))
@@ -2737,15 +2845,69 @@ end
         return itemNames
     end
 
-    local ItemNameDropdown
-    ItemNameDropdown = trade:Dropdown({
-        Title = "Filter Item Name",
-        Values = getTradeableItemOptions(),
+    -- =================================================================
+    -- [UPDATE] TRADE: SEARCH & SELECT ITEM
+    -- =================================================================
+
+    -- Ambil daftar nama item sekali saja di awal
+    local allTradeItems = getTradeableItemOptions()
+
+    -- Variabel Dropdown (dideklarasikan dulu biar bisa dipanggil di fungsi Search)
+    local TradeItemDropdown 
+
+    -- 1. Input Box untuk Filter Pencarian
+    local TradeSearchInput = trade:Input({
+        Title = "Search Item to Trade",
+        Desc = "Ketik nama item untuk menyaring dropdown di bawah.",
+        Placeholder = "Contoh: Puffer",
+        Icon = "search",
+        Callback = function(text)
+            -- Jika teks kosong, kembalikan semua item
+            if text == "" or not text then
+                if TradeItemDropdown then
+                    TradeItemDropdown:Refresh(allTradeItems)
+                end
+                return
+            end
+
+            -- Filter daftar item berdasarkan teks input (Case Insensitive)
+            local filteredItems = {}
+            local lowerText = string.lower(text)
+
+            for _, name in ipairs(allTradeItems) do
+                if string.find(string.lower(name), lowerText) then
+                    table.insert(filteredItems, name)
+                end
+            end
+
+            table.sort(filteredItems)
+
+            -- Update isi Dropdown
+            if TradeItemDropdown then
+                if #filteredItems == 0 then
+                    TradeItemDropdown:Refresh({"No items found"}) 
+                else
+                    TradeItemDropdown:Refresh(filteredItems)
+                end
+            end
+        end
+    })
+
+    -- 2. Dropdown Item (Single Select untuk Trade biar aman)
+    TradeItemDropdown = trade:Dropdown({
+        Title = "Select Item Name",
+        Desc = "Pilih jenis item yang ingin di-trade.",
+        Values = allTradeItems, 
         Value = false,
-        Multi = false,
-        AllowNone = false,
+        Multi = false, -- Single select untuk trade lebih aman
+        AllowNone = true,
         Callback = function(name)
-            selectedTradeItemName = name or nil -- Set ke nil jika "None"
+            -- Cegah memilih placeholder "No items found"
+            if name == "No items found" then 
+                selectedTradeItemName = nil
+                return 
+            end
+            selectedTradeItemName = name or nil
         end
     })
 
@@ -2811,6 +2973,10 @@ end
     })
 
 
+    -- =================================================================
+    -- [UPDATE] LOGIKA FILTER TRADE (STRICT AND)
+    -- =================================================================
+
     local function GetItemsToTrade()
         local replion = GetPlayerDataReplion()
         if not replion then return {} end
@@ -2820,8 +2986,20 @@ end
 
         local itemsToTrade = {}
         
+        -- Cek Filter Aktif
+        -- (Kita anggap filter aktif jika nilainya TIDAK nil)
+        local isRarityFilterActive = (selectedTradeRarity ~= nil)
+        local isNameFilterActive = (selectedTradeItemName ~= nil)
+
+        -- SAFETY CHECK:
+        -- Jika user TIDAK memilih Nama Item DAN TIDAK memilih Rarity,
+        -- JANGAN kembalikan item apa pun. (Mencegah trade satu tas tidak sengaja)
+        if not isRarityFilterActive and not isNameFilterActive then
+            return {}
+        end
+
         for _, item in ipairs(inventoryData.Items) do
-            -- [[ LOGIKA HOLD FAVORITE ]]
+            -- 1. Cek Hold Favorite (Prioritas Utama)
             local isFavorited = item.IsFavorite or item.Favorited
             if tradeHoldFavorite and isFavorited then
                 continue 
@@ -2830,14 +3008,31 @@ end
             if typeof(item.UUID) ~= "string" or item.UUID:len() < 10 then continue end
             
             local name, rarity = GetFishNameAndRarity(item)
-            local itemRarity = (rarity and rarity:upper() ~= "COMMON") and rarity or "Default"
+            local itemRarity = (rarity and rarity:upper() ~= "COMMON") and rarity or "Common" -- Normalisasi Common
             
-            -- Filter Logic
-            local passesRarity = not selectedTradeRarity or (selectedTradeRarity and itemRarity:upper() == selectedTradeRarity:upper())
-            local passesName = not selectedTradeItemName or (name == selectedTradeItemName)
-            
+            -- --- LOGIKA STRICT (AND) ---
+            local passesRarity = true
+            local passesName = true
+
+            -- Cek Rarity (Hanya jika user memilih filter Rarity)
+            if isRarityFilterActive then
+                -- Bandingkan huruf besar semua biar tidak error case-sensitive
+                if itemRarity:upper() ~= selectedTradeRarity:upper() then
+                    passesRarity = false
+                end
+            end
+
+            -- Cek Nama (Hanya jika user memilih filter Nama)
+            if isNameFilterActive then
+                if name ~= selectedTradeItemName then
+                    passesName = false
+                end
+            end
+
+            -- KEPUTUSAN FINAL: Harus lolos kedua filter (jika aktif)
             if passesRarity and passesName then
-                -- [UPDATE] Masukkan Id dan Metadata juga untuk hitung harga
+                
+                -- Masukkan data lengkap untuk proses trade
                 table.insert(itemsToTrade, { 
                     UUID = item.UUID, 
                     Name = name, 
@@ -2848,6 +3043,7 @@ end
                 })
             end
         end
+
         return itemsToTrade
     end
 
@@ -3070,7 +3266,7 @@ end
         {Name = "Midnight Rod", ID = 80}, {Name = "Steampunk Rod", ID = 6}, {Name = "Chrome Rod", ID = 7}, 
         {Name = "Flourescent Rod", ID = 255}, {Name = "Astral Rod", ID = 5}, {Name = "Ares Rod", ID = 126}, 
         {Name = "Angler Rod", ID = 168}, {Name = "Ghostfin Rod", ID = 169}, {Name = "Element Rod", ID = 257},
-        {Name = "Hazmat Rod", ID = 256}, {Name = "Bamboo Rod", ID = 258}
+        {Name = "Diamond Rod", ID = 559}, {Name = "Hazmat Rod", ID = 256}, {Name = "Bamboo Rod", ID = 258}
     }
 
     local function GetHardcodedRodNames()
@@ -5771,10 +5967,10 @@ do
     }
     local ArtifactOrder = {"Hourglass Diamond Artifact", "Diamond Artifact", "Arrow Artifact", "Crescent Artifact"}
 
-    -- =================================================================
+    -- ================================================================={Name = "Diamond Rod", ID = 559},
     -- [DATA] PRICES FOR LOGIC
     -- =================================================================
-    local SPECIAL_ROD_IDS = {[169] = {Name = "Ghostfin Rod", Price = 99999999}, [257] = {Name = "Element Rod", Price = 999999999}}
+    local SPECIAL_ROD_IDS = {[169] = {Name = "Ghostfin Rod", Price = 99999999}, [257] = {Name = "Element Rod", Price = 999999999}, [559] = {Name = "Diamond Rod", Price = 999999999}}
     local ShopItems = {
         ["Rods"] = {
             {Name="Luck Rod",ID=79,Price=325},{Name="Carbon Rod",ID=76,Price=750},{Name="Grass Rod",ID=85,Price=1500},{Name="Demascus Rod",ID=77,Price=3000},
@@ -5809,6 +6005,7 @@ do
     -- [Quest / Special Rods]
     [169] = 1.2, -- Ghostfin Rod
     [257] = 1, -- Element Rod
+    [559] = 0.9, -- Diamond Rod
 }
 
 local DEFAULT_ROD_DELAY = 3.85
@@ -7883,6 +8080,44 @@ do
     local isWebhookEnabled = false
     local SelectedRarityCategories = {}
     local SelectedWebhookItemNames = {} -- Variabel baru untuk filter nama
+    local SelectedWebhookMutations = {} -- Variabel baru untuk filter mutasi
+
+-- =================================================================
+-- 📊 HELPER: UPDATE TAMPILAN FILTER (Active Filter Display)
+-- =================================================================
+    
+    -- Kita butuh referensi ke Paragraph UI nanti
+    local ActiveFilterDisplay = nil 
+
+    local function UpdateFilterDisplay()
+        if not ActiveFilterDisplay then return end
+
+        local text = ""
+
+        -- 1. Cek Item Name
+        if #SelectedWebhookItemNames > 0 then
+            text = text .. "🐟 Items: " .. table.concat(SelectedWebhookItemNames, ", ") .. "\n\n"
+        else
+            text = text .. "🐟 Items: [ALL / None Selected]\n\n"
+        end
+
+        -- 2. Cek Rarity
+        if #SelectedRarityCategories > 0 then
+            text = text .. "💎 Rarity: " .. table.concat(SelectedRarityCategories, ", ") .. "\n\n"
+        else
+            text = text .. "💎 Rarity: [ALL / None Selected]\n\n"
+        end
+
+        -- 3. Cek Mutation
+        if #SelectedWebhookMutations > 0 then
+            text = text .. "🧬 Mutations: " .. table.concat(SelectedWebhookMutations, ", ")
+        else
+            text = text .. "🧬 Mutations: [ALL / None Selected]"
+        end
+
+        -- Update isi Paragraph
+        ActiveFilterDisplay:SetDesc(text)
+    end
     
     -- Kita butuh daftar nama item (Copy fungsi helper ini ke dalam tab webhook atau taruh di global scope)
     local function getWebhookItemOptions()
@@ -7907,7 +8142,7 @@ do
     local GLOBAL_RARITY_FILTER = {"SECRET", "TROPHY", "COLLECTIBLE", "DEV"}
 
     local RarityList = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Trophy", "Collectible", "DEV"}
-    
+    local MutationList = {"1x1x1x1","Albino","Arctic Frost","Bloodmoon","Color Burn","Corrupt","Disco","Fairy Dust","Festive","Frozen","Galaxy","Gemstone","Ghost","Gold","Holographic","Lightning","Midnight","Moon Fragment","Noob","Radioactive","Sandy","Stone"}
     local REObtainedNewFishNotification = GetRemote(RPath, "RE/ObtainedNewFishNotification")
     local HttpService = game:GetService("HttpService")
     local WebhookStatusParagraph -- Forward declaration
@@ -7999,23 +8234,67 @@ do
         return 0x00BFFF
     end
 
-    local function shouldNotify(fishRarityUpper, fishMetadata, fishName)
-        -- Cek Filter Rarity
-        if #SelectedRarityCategories > 0 and table.find(SelectedRarityCategories, fishRarityUpper) then
-            return true
+    -- FUNGSI FILTER UTAMA (LOGIKA AND)
+    -- Param: Rarity(String), Metadata(Table), Name(String), ItemObject(Table)
+    local function shouldNotify(fishRarityUpper, fishMetadata, fishName, itemObject)
+        -- 1. Cek apakah ada filter yang aktif?
+        local isRarityActive = #SelectedRarityCategories > 0
+        local isNameActive = #SelectedWebhookItemNames > 0
+        local isMutationActive = #SelectedWebhookMutations > 0
+
+        -- Jika TIDAK ADA filter sama sekali yang dipilih,
+        -- Apakah mau kirim SEMUA? Atau TIDAK SAMA SEKALI?
+        -- Default aman: Kirim SEMUA jika toggle Webhook ON dan tidak ada filter spesifik.
+        if not (isRarityActive or isNameActive or isMutationActive) then
+            return true 
         end
 
-        -- Cek Filter Nama (Fitur Baru)
-        if #SelectedWebhookItemNames > 0 and table.find(SelectedWebhookItemNames, fishName) then
-            return true
+        -- --- LOGIKA STRICT (AND) ---
+        -- Kita anggap lolos (true) dulu, lalu cek satu per satu.
+        local passesRarity = true
+        local passesName = true
+        local passesMutation = true
+
+        -- A. Cek Rarity (Hanya jika filter Rarity dipilih)
+        if isRarityActive then
+            if not table.find(SelectedRarityCategories, fishRarityUpper) then
+                passesRarity = false
+            end
         end
 
-        -- Cek Mutasi
-        if _G.NotifyOnMutation and (fishMetadata.Shiny or fishMetadata.VariantId) then
-             return true
+        -- B. Cek Nama (Hanya jika filter Nama dipilih)
+        if isNameActive then
+            if not table.find(SelectedWebhookItemNames, fishName) then
+                passesName = false
+            end
         end
-        
-        return false
+
+        -- C. Cek Mutasi (Hanya jika filter Mutasi dipilih)
+        if isMutationActive then
+            -- Kita perlu string mutasi dari item ini
+            -- Pastikan fungsi 'GetItemMutationString' ada di script global kamu
+            local currentMutation = "N/A"
+            if GetItemMutationString then
+                currentMutation = GetItemMutationString(itemObject)
+            end
+            
+            -- Cek apakah mutasi item ini ada di daftar yang dipilih
+            -- (Menggunakan string.find untuk mencocokkan sebagian kata, misal "Big" cocok dengan "Big Shark")
+            local mutationMatch = false
+            for _, selectedMut in ipairs(SelectedWebhookMutations) do
+                if currentMutation:find(selectedMut) then
+                    mutationMatch = true
+                    break
+                end
+            end
+            
+            if not mutationMatch then
+                passesMutation = false
+            end
+        end
+
+        -- KEPUTUSAN FINAL: Harus lolos SEMUA filter yang aktif
+        return passesRarity and passesName and passesMutation
     end
     
     -- FUNGSI UNTUK MENGIRIM PESAN IKAN AKTUAL (FIXED PATH: {"Coins"})
@@ -8088,7 +8367,7 @@ do
             -- ************************************************************
             -- 1. LOGIKA WEBHOOK PRIBADI (USER'S WEBHOOK)
             -- ************************************************************
-            local isUserFilterMatch = shouldNotify(fishRarityUpper, metadata, fishName)
+            local isUserFilterMatch = shouldNotify(fishRarityUpper, metadata, fishName, dummyItem)
 
             if isWebhookEnabled and WEBHOOK_URL ~= "" and isUserFilterMatch then
                 local title_private = string.format("<:TEXTURENOBG:1438662703722790992> KbxHub | Webhook\n\n<a:ChipiChapa:1438661193857503304> New Fish Caught! (%s)", fishName)
@@ -8173,13 +8452,17 @@ do
         FontWeight = Enum.FontWeight.SemiBold,
     })
 
+   -- =================================================================
+    -- 🖥️ UI IMPLEMENTATION (UPDATED)
+    -- =================================================================
+    
+    -- Input URL Webhook
    local inputweb = Reg("inptweb",webhooksec:Input({
         Title = "Discord Webhook URL",
         Desc = "URL tempat notifikasi akan dikirim.",
-        Value = "",
+        Value = WEBHOOK_URL,
         Placeholder = "https://discord.com/api/webhooks/...",
         Icon = "link",
-        Type = "Input",
         Callback = function(input)
             WEBHOOK_URL = input
         end
@@ -8187,43 +8470,82 @@ do
 
     webhook:Divider()
     
+    -- Toggle Utama
    local ToggleNotif = Reg("tweb",webhooksec:Toggle({
         Title = "Enable Fish Notifications",
-        Desc = "Aktifkan/nonaktifkan pengiriman notifikasi ikan.",
-        Value = false,
-        Icon = "cloud-upload",
+        Desc = "Aktifkan pengiriman webhook.",
+        Value = isWebhookEnabled,
+        Icon = "bell",
         Callback = function(state)
             isWebhookEnabled = state
             if state then
                 if WEBHOOK_URL == "" or not WEBHOOK_URL:find("discord.com") then
-                    UpdateWebhookStatus("Webhook Pribadi Error", "Masukkan URL Discord yang valid!", "alert-triangle")
-                    return false
+                    UpdateWebhookStatus("Error", "URL tidak valid!", "alert-triangle")
+                    return
                 end
-                WindUI:Notify({ Title = "Webhook ON!", Duration = 4, Icon = "check" })
-                UpdateWebhookStatus("Status: Listening", "Menunggu tangkapan ikan...", "ear")
+                UpdateWebhookStatus("Listening", "Menunggu ikan yang sesuai filter...", "ear")
             else
-                WindUI:Notify({ Title = "Webhook OFF!", Duration = 4, Icon = "x" })
-                UpdateWebhookStatus("Webhook Status", "Aktifkan 'Enable Fish Notifications' untuk mulai mendengarkan tangkapan ikan.", "info")
+                UpdateWebhookStatus("Paused", "Webhook dinonaktifkan.", "pause")
             end
         end
     }))
 
-    local dwebname = Reg("drweb", webhooksec:Dropdown({
-        Title = "Filter by Specific Name",
-        Desc = "Notifikasi khusus untuk nama ikan tertentu",
+    webhook:Divider()
+
+    -- 1. SEARCH & FILTER NAMA ITEM
+    local WebhookItemDropdown -- Deklarasi dulu
+
+    local WebhookSearch = webhooksec:Input({
+        Title = "Search Item Filter",
+        Desc = "Ketik nama ikan untuk menyaring dropdown di bawah.",
+        Placeholder = "Search...",
+        Icon = "search",
+        Callback = function(text)
+            local allItems = getWebhookItemOptions()
+            local filtered = {}
+            local lowerText = string.lower(text or "")
+
+            if lowerText == "" then
+                if WebhookItemDropdown then WebhookItemDropdown:Refresh(allItems, SelectedWebhookItemNames) end
+                return
+            end
+
+            for _, name in ipairs(allItems) do
+                if string.find(string.lower(name), lowerText) then
+                    table.insert(filtered, name)
+                end
+            end
+            table.sort(filtered)
+            
+            if WebhookItemDropdown then 
+                if #filtered == 0 then
+                    WebhookItemDropdown:Refresh({"No items found"}, SelectedWebhookItemNames)
+                else
+                    WebhookItemDropdown:Refresh(filtered, SelectedWebhookItemNames)
+                end
+            end
+        end
+    })
+
+    WebhookItemDropdown = Reg("drweb", webhooksec:Dropdown({
+        Title = "Select Item Name",
+        Desc = "Pilih nama ikan spesifik.",
         Values = getWebhookItemOptions(),
         Value = SelectedWebhookItemNames,
         Multi = true,
         AllowNone = true,
         Callback = function(names)
+            if names and names[1] == "No items found" then return end
             SelectedWebhookItemNames = names or {} 
+            UpdateFilterDisplay()
         end
     }))
 
+    -- 2. FILTER RARITY
     local dwebrar = Reg("rarwebd", webhooksec:Dropdown({
-        Title = "Rarity to Notify",
-        Desc = "Hanya notifikasi ikan rarity yang dipilih.",
-        Values = RarityList, -- Menggunakan list yang sudah distandarisasi
+        Title = "Filter by Rarity",
+        Desc = "Pilih rarity target.",
+        Values = RarityList,
         Value = SelectedRarityCategories,
         Multi = true,
         AllowNone = true,
@@ -8232,14 +8554,49 @@ do
             for _, cat in ipairs(categories or {}) do
                 table.insert(SelectedRarityCategories, cat:upper()) 
             end
+            UpdateFilterDisplay()
         end
     }))
 
+    -- 3. FILTER MUTATION (BARU)
+    local dwebmut = Reg("mutwebd", webhooksec:Dropdown({
+        Title = "Filter by Mutation",
+        Desc = "Hanya notif jika ikan memiliki mutasi ini.",
+        Values = MutationList,
+        Value = SelectedWebhookMutations,
+        Multi = true,
+        AllowNone = true,
+        Callback = function(values)
+            SelectedWebhookMutations = values or {}
+            UpdateFilterDisplay()
+        end
+    }))
+
+    webhook:Divider()
+
     WebhookStatusParagraph = webhooksec:Paragraph({
         Title = "Webhook Status",
-        Content = "Aktifkan 'Enable Fish Notifications' untuk mulai mendengarkan tangkapan ikan.",
+        Content = "Idle.",
         Icon = "info",
     })
+
+    webhook:Divider()
+
+    -- Section Khusus Info Filter
+    local filterInfoSec = webhook:Section({
+        Title = "📋 Active Filters Summary",
+        TextSize = 16,
+    })
+
+    -- Ini Paragraph yang akan berubah-ubah isinya
+    ActiveFilterDisplay = filterInfoSec:Paragraph({
+        Title = "Current Configuration",
+        Content = "🐟 Items: [ALL]\n\n💎 Rarity: [ALL]\n\n🧬 Mutations: [ALL]",
+        Icon = "list-filter",
+    })
+    
+    -- Panggil sekali di awal agar tampilan sinkron saat script dijalankan
+    UpdateFilterDisplay()
     
 
     local teswebbut = webhooksec:Button({
