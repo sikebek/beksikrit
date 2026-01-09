@@ -8098,24 +8098,29 @@ do
         if #SelectedWebhookItemNames > 0 then
             text = text .. "🐟 Items: " .. table.concat(SelectedWebhookItemNames, ", ") .. "\n\n"
         else
-            text = text .. "🐟 Items: [ALL / None Selected]\n\n"
+            -- Ubah teks jadi Inactive
+            text = text .. "🐟 Items: [None Selected]\n\n"
         end
 
         -- 2. Cek Rarity
         if #SelectedRarityCategories > 0 then
             text = text .. "💎 Rarity: " .. table.concat(SelectedRarityCategories, ", ") .. "\n\n"
         else
-            text = text .. "💎 Rarity: [ALL / None Selected]\n\n"
+            text = text .. "💎 Rarity: [None Selected]\n\n"
         end
 
         -- 3. Cek Mutation
         if #SelectedWebhookMutations > 0 then
             text = text .. "🧬 Mutations: " .. table.concat(SelectedWebhookMutations, ", ")
         else
-            text = text .. "🧬 Mutations: [ALL / None Selected]"
+            text = text .. "🧬 Mutations: [None Selected]"
         end
 
-        -- Update isi Paragraph
+        -- Tambahkan peringatan kecil di bawah jika semua kosong
+        if #SelectedWebhookItemNames == 0 and #SelectedRarityCategories == 0 and #SelectedWebhookMutations == 0 then
+             text = text .. "\n\n⚠️ FILTER KOSONG: Webhook tidak akan dikirim."
+        end
+
         ActiveFilterDisplay:SetDesc(text)
     end
     
@@ -8234,52 +8239,46 @@ do
         return 0x00BFFF
     end
 
-    -- FUNGSI FILTER UTAMA (LOGIKA AND)
-    -- Param: Rarity(String), Metadata(Table), Name(String), ItemObject(Table)
+    -- FUNGSI FILTER UTAMA (UPDATED: NO FILTER = NO NOTIF)
     local function shouldNotify(fishRarityUpper, fishMetadata, fishName, itemObject)
         -- 1. Cek apakah ada filter yang aktif?
         local isRarityActive = #SelectedRarityCategories > 0
         local isNameActive = #SelectedWebhookItemNames > 0
         local isMutationActive = #SelectedWebhookMutations > 0
 
-        -- Jika TIDAK ADA filter sama sekali yang dipilih,
-        -- Apakah mau kirim SEMUA? Atau TIDAK SAMA SEKALI?
-        -- Default aman: Kirim SEMUA jika toggle Webhook ON dan tidak ada filter spesifik.
+        -- [PERUBAHAN DI SINI]
+        -- Jika TIDAK ADA satupun filter yang dipilih:
+        -- Return FALSE (Jangan kirim webhook).
         if not (isRarityActive or isNameActive or isMutationActive) then
-            return true 
+            return false 
         end
 
         -- --- LOGIKA STRICT (AND) ---
-        -- Kita anggap lolos (true) dulu, lalu cek satu per satu.
         local passesRarity = true
         local passesName = true
         local passesMutation = true
 
-        -- A. Cek Rarity (Hanya jika filter Rarity dipilih)
+        -- A. Cek Rarity
         if isRarityActive then
             if not table.find(SelectedRarityCategories, fishRarityUpper) then
                 passesRarity = false
             end
         end
 
-        -- B. Cek Nama (Hanya jika filter Nama dipilih)
+        -- B. Cek Nama
         if isNameActive then
             if not table.find(SelectedWebhookItemNames, fishName) then
                 passesName = false
             end
         end
 
-        -- C. Cek Mutasi (Hanya jika filter Mutasi dipilih)
+        -- C. Cek Mutasi
         if isMutationActive then
-            -- Kita perlu string mutasi dari item ini
-            -- Pastikan fungsi 'GetItemMutationString' ada di script global kamu
             local currentMutation = "N/A"
             if GetItemMutationString then
                 currentMutation = GetItemMutationString(itemObject)
             end
             
-            -- Cek apakah mutasi item ini ada di daftar yang dipilih
-            -- (Menggunakan string.find untuk mencocokkan sebagian kata, misal "Big" cocok dengan "Big Shark")
             local mutationMatch = false
             for _, selectedMut in ipairs(SelectedWebhookMutations) do
                 if currentMutation:find(selectedMut) then
@@ -8293,7 +8292,6 @@ do
             end
         end
 
-        -- KEPUTUSAN FINAL: Harus lolos SEMUA filter yang aktif
         return passesRarity and passesName and passesMutation
     end
     
