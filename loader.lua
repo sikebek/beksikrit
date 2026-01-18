@@ -731,7 +731,7 @@ end
 local FishingAreas = {
         ["Diamond NPC"] = {Pos = Vector3.new(-1774.300, -222.620, 23919.027), Look = Vector3.new(-0.546, 0.000, 0.837)},
         ["Pirate Cove"] = {Pos = Vector3.new(3525.156, 4.699, 3430.762), Look = Vector3.new(0.940, 0.000, -0.340)},
-        ["Christmas Cave"] = {Pos = Vector3.new(606.948, -580.581, 8863.126), Look = Vector3.new(-0.843, 0.000, 0.536)},
+        ["Crystal Depths"] = {Pos = Vector3.new(5849.795, -898.18798828125, 15267.810), Look = Vector3.new(0.898, 0.00, -0.439)},
         ["Ancient Jungle"] = {Pos = Vector3.new(1535.639, 3.159, -193.352), Look = Vector3.new(0.505, -0.000, 0.863)},
         ["Arrow Lever"] = {Pos = Vector3.new(898.296, 8.449, -361.856), Look = Vector3.new(0.023, -0.000, 1.000)},
         ["Coral Reef"] = {Pos = Vector3.new(-3207.538, 6.087, 2011.079), Look = Vector3.new(0.973, 0.000, 0.229)},
@@ -2677,7 +2677,7 @@ do
 
     local MutationDropdown = Reg("dmut",favsec:Dropdown({
         Title = "by Mutation",
-        Values = {"1x1x1x1","Albino","Arctic Frost","Bloodmoon","Color Burn","Corrupt","Disco","Fairy Dust","Festive","Frozen","Galaxy","Gemstone","Ghost","Gold","Holographic","Lightning","Midnight","Moon Fragment","Noob","Radioactive","Sandy","Stone"},
+        Values = {"1x1x1x1","Albino","Arctic Frost","Bloodmoon","Color Burn","Corrupt","Disco","Fairy Dust","Festive","Frozen","Galaxy","Gemstone","Ghost","Gold","Holographic","Leviathan Rage","Lightning","Midnight","Moon Fragment","Noob","Radioactive","Sandy","Stone"},
         Multi = true, AllowNone = true, Value = false,
         Callback = function(values) selectedMutations = values or {} end
     }))
